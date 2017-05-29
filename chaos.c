@@ -32,13 +32,6 @@ void chaos_hash(uint32_t *input, uint32_t len, uint32_t output[4])
         Y = input[offset + 1] ^ y;
         Z = input[offset + 2] ^ z;
         U = input[offset + 3] ^ u;
-
-        if (i == len - 1) {
-            printf("last X = %08x\n", X);
-            printf("last Y = %08x\n", Y);
-            printf("last Z = %08x\n", Z);
-            printf("last U = %08x\n", U);
-        }
         
         /* compute chaos */
         x = (X & 0xffff)*(M-(Y>>16)) ^ rotl32(Z,1) ^ rotr32(U,1) ^ A;
@@ -55,10 +48,10 @@ void chaos_hash(uint32_t *input, uint32_t len, uint32_t output[4])
         
         /* compute chaos */        
         
-        x = (X & 0xffff)*(M-(Y>>16)) ^ rotl32(Z,1) ^ rotr32(U,1) ^ A;
-        y = (Y & 0xffff)*(M-(Z>>16)) ^ rotl32(U,2) ^ rotr32(X,2) ^ B;
-        z = (Z & 0xffff)*(M-(U>>16)) ^ rotl32(X,3) ^ rotr32(Y,3) ^ C;
-        u = (U & 0xffff)*(M-(X>>16)) ^ rotl32(Y,4) ^ rotr32(Z,4) ^ D;
+        x = (X & 0xffff) * (M-(Y>>16)) ^ rotl32(Z,1) ^ rotr32(U,1) ^ A;
+        y = (Y & 0xffff) * (M-(Z>>16)) ^ rotl32(U,2) ^ rotr32(X,2) ^ B;
+        z = (Z & 0xffff) * (M-(U>>16)) ^ rotl32(X,3) ^ rotr32(Y,3) ^ C;
+        u = (U & 0xffff) * (M-(X>>16)) ^ rotl32(Y,4) ^ rotr32(Z,4) ^ D;
         
         RV1 ^= x; RV2 ^= y; RV3 ^= z; RV4 ^= u;
      }
@@ -78,7 +71,6 @@ void chaos_hash(uint32_t *input, uint32_t len, uint32_t output[4])
  * value.
  */
 void compute_suffix(
-    uint32_t _X, uint32_t _Y, uint32_t _Z, uint32_t _U,
     uint32_t *input, uint32_t len,
     uint32_t suffix[4])
 {
@@ -102,11 +94,19 @@ void compute_suffix(
         z = (Z & 0xffff)*(M-(U>>16)) ^ rotl32(X,3) ^ rotr32(Y,3) ^ C;
         u = (U & 0xffff)*(M-(X>>16)) ^ rotl32(Y,4) ^ rotr32(Z,4) ^ D;
 
-        if (i == len - 1) {
-            suffix[0] = _X ^ x;
-            suffix[1] = _Y ^ y;
-            suffix[2] = _Z ^ z;
-            suffix[3] = _U ^ u;
+        if (i == len - 3) {
+            // we have processed the 'last' block, compute input for (last + 1) block
+            suffix[0] = X ^ x;
+            suffix[1] = Y ^ y;
+            suffix[2] = Z ^ z;
+            suffix[3] = U ^ u;
+        }
+        if (i == len - 2) {
+            // we have processed the 'last + 1' block, compute input for (last + 2) block
+            suffix[4] = X ^ x;
+            suffix[5] = Y ^ y;
+            suffix[6] = Z ^ z;
+            suffix[7] = U ^ u;
         }
     }
 }
@@ -121,7 +121,7 @@ void hexprint(uint32_t *input, uint32_t len)
 void print_hash(uint32_t *input, uint32_t len)
 {
     uint32_t hash[4];
-    chaos_hash(input, len, hash);
+    chaos_hash(input, len / 4, hash);
     printf("chaos_hash(");
     hexprint(input, len);
     printf(") = ");
@@ -141,26 +141,19 @@ void random_fill(uint32_t *target, uint32_t len)
 
 int main(int argc, char **argv)
 {
-    uint32_t input1[36];
-    uint32_t input2[36];
+    uint32_t input1[40];
 
-    memset(input1, 0, 36*4);
-    memset(input2, 0, 36*4);
+    memset(input1, 0, 40*4);
     
     uint32_t len1 = sizeof(input1) / sizeof(uint32_t);
-    uint32_t len2 = sizeof(input1) / sizeof(uint32_t);
 
-    random_fill(input1, len1 - 4);
-    random_fill(input2, len2 - 4);
+    random_fill(input1, len1 - 8);
     
-    print_hash(input1, len1 - 4);
-    print_hash(input2, len2 - 4);
+    print_hash(input1, len1 - 8);
 
-    compute_suffix(0, 0, 0, 0, input1, len1 - 4, input1 + len1 - 4);    
-    compute_suffix(0, 0, 0, 0, input2, len2 - 4, input2 + len2 - 4);
+    compute_suffix(input1, len1 / 4, input1 + len1 - 8);    
 
     print_hash(input1, len1);
-    print_hash(input2, len2);
     
     return 0;
 }
