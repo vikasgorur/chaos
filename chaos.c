@@ -26,12 +26,19 @@ void chaos_hash(uint32_t *input, uint32_t len, uint32_t output[4])
     A = 0x401ab257; B = 0xb7cd34e1; C = 0x76b3a27c; D = 0xf13c3adf;
     RV1 = 0xe12f23cd; RV2 = 0xc5ab6789; RV3 = 0xf1234567; RV4 = 0x9a8bc7ef;
 
-    for (i=0; i < len; ++i) {
+    for (i = 0; i < len; ++i) {
         offset = 4*i;
         X = input[offset + 0] ^ x;
         Y = input[offset + 1] ^ y;
         Z = input[offset + 2] ^ z;
         U = input[offset + 3] ^ u;
+
+        if (i == len - 1) {
+            printf("last X = %08x\n", X);
+            printf("last Y = %08x\n", Y);
+            printf("last Z = %08x\n", Z);
+            printf("last U = %08x\n", U);
+        }
         
         /* compute chaos */
         x = (X & 0xffff)*(M-(Y>>16)) ^ rotl32(Z,1) ^ rotr32(U,1) ^ A;
@@ -43,7 +50,7 @@ void chaos_hash(uint32_t *input, uint32_t len, uint32_t output[4])
     }
 
     /* now run 4 more times */
-    for (i=0; i < 4; ++i) {
+    for (i = 0; i < 4; ++i) {
         X = x; Y = y; Z = z; U = u;
         
         /* compute chaos */        
@@ -82,7 +89,7 @@ void compute_suffix(
     x = 0x0124fdce; y = 0x89ab57ea; z = 0xba89370a; u = 0xfedc45ef;
     A = 0x401ab257; B = 0xb7cd34e1; C = 0x76b3a27c; D = 0xf13c3adf;
 
-    for (i=0; i < len; ++i) {
+    for (i = 0; i < len; ++i) {
         offset = 4*i;
         X = input[offset + 0] ^ x;
         Y = input[offset + 1] ^ y;
@@ -95,7 +102,7 @@ void compute_suffix(
         z = (Z & 0xffff)*(M-(U>>16)) ^ rotl32(X,3) ^ rotr32(Y,3) ^ C;
         u = (U & 0xffff)*(M-(X>>16)) ^ rotl32(Y,4) ^ rotr32(Z,4) ^ D;
 
-        if (i == len) {
+        if (i == len - 1) {
             suffix[0] = _X ^ x;
             suffix[1] = _Y ^ y;
             suffix[2] = _Z ^ z;
@@ -137,6 +144,9 @@ int main(int argc, char **argv)
     uint32_t input1[36];
     uint32_t input2[36];
 
+    memset(input1, 0, 36*4);
+    memset(input2, 0, 36*4);
+    
     uint32_t len1 = sizeof(input1) / sizeof(uint32_t);
     uint32_t len2 = sizeof(input1) / sizeof(uint32_t);
 
