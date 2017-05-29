@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 uint32_t rotl32(uint32_t value, uint32_t count) {
     const uint32_t mask = (CHAR_BIT*sizeof(value)-1);
@@ -142,15 +143,13 @@ void random_fill(uint32_t *target, uint32_t len)
 int main(int argc, char **argv)
 {
     uint32_t input1[40];
-
     memset(input1, 0, 40*4);
     
     uint32_t len1 = sizeof(input1) / sizeof(uint32_t);
-
+    srand(time(NULL));
     random_fill(input1, len1 - 8);
     
     print_hash(input1, len1 - 8);
-
     compute_suffix(input1, len1 / 4, input1 + len1 - 8);    
 
     print_hash(input1, len1);
